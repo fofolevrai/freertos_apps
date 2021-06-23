@@ -12,7 +12,7 @@
 ######################################
 # target
 ######################################
-TARGET = micro-ROSF401xx
+TARGET = micro-ROS
 
 
 ######################################
@@ -48,21 +48,8 @@ Core/Src/main.c \
 Core/Src/system_stm32f4xx.c \
 Core/Src/stm32f4xx_it.c \
 Core/Src/stm32f4xx_hal_msp.c \
-Core/Src/syscall.c \
-Core/Src/sysmem.c
-
-# FreeRTOS C sources files \
-Src/microros_transports.c \
-Core/Src/freertos.c \
-Core/Src/FreeRTOS-openocd.c \
-Core/Src/gpio.c \
-Core/Src/dma.c \
-Core/Src/usart.c \
-Core/Src/custom_memory_manager.c \
-Core/Src/allocators.c \
-Core/Src/stm32f4xx_hal_timebase_tim.c
-
-# STM32 Driver C sources
+Core/Src/syscalls.c \
+Core/Src/sysmem.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_flash.c \
@@ -80,6 +67,16 @@ Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.c \
 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c
 
+# FreeRTOS C sources files \
+Src/microros_transports.c \
+Core/Src/freertos.c \
+Core/Src/FreeRTOS-openocd.c \
+Core/Src/gpio.c \
+Core/Src/dma.c \
+Core/Src/usart.c \
+Core/Src/custom_memory_manager.c \
+Core/Src/allocators.c \
+Core/Src/stm32f4xx_hal_timebase_tim.c
 # FreeRTOS Middlewares sources \
 Middlewares/Third_Party/FreeRTOS/Source/croutine.c \
 Middlewares/Third_Party/FreeRTOS/Source/event_groups.c \
@@ -105,7 +102,7 @@ C_SOURCES := $(filter-out Middlewares/Third_Party/FreeRTOS/Source/portable/MemMa
 
 # ASM sources
 ASM_SOURCES =  \
-startup_stm32f401retx.s
+Core/Startup/startup_stm32f401retx.s
 
 
 #######################################
@@ -165,14 +162,13 @@ AS_INCLUDES =  \
 C_INCLUDES =  \
 -ICore/Inc \
 -IDrivers/STM32F4xx_HAL_Driver/Inc \
--IDrivers/STM32F4xx_HAL_Driver/Inc/Legacy
+-IDrivers/STM32F4xx_HAL_Driver/Inc/Legacy \
+-IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
+-IDrivers/CMSIS/Include
 # FreeRTOS includes \
 -IMiddlewares/Third_Party/FreeRTOS/Source/include \
 -IMiddlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2 \
 -IMiddlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F \
-# STM HAL CMSIS includes
--IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
--IDrivers/CMSIS/Include
 # FreeRTOS POSIX compliant lib includes \
 -Ilib/FreeRTOS-Plus-POSIX/include \
 -Ilib/FreeRTOS-Plus-POSIX/include/portable/empty_portable \
