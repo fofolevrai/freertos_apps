@@ -19,10 +19,22 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include <stdbool.h>
+#include "allocators.h"
+#include "cmsis_os2.h"
 
+#include <rcl/rcl.h>
+#include <rmw_microxrcedds_c/config.h>
+#include <ucdr/microcdr.h>
+#include <uxr/client/client.h>
+
+#include <rmw_microros/rmw_microros.h> 
+
+#include <microros_transports.h> 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -40,8 +52,27 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
+DMA_HandleTypeDef hdma_usart1_rx;
+DMA_HandleTypeDef hdma_usart1_tx;
+DMA_HandleTypeDef hdma_usart2_rx;
+DMA_HandleTypeDef hdma_usart2_tx;
 
+/* Definitions for microROS_app */
+osThreadId_t microROS_appHandle;
+const osThreadAttr_t microROS_app_attributes = {
+  .name = "microROS_app",
+  .priority = (osPriority_t) osPriorityNormal1,
+  .stack_size = 512 * 4
+};
+/* Definitions for StartTask */
+osThreadId_t StartTaskHandle;
+const osThreadAttr_t StartTask_attributes = {
+  .name = "StartTask",
+  .priority = (osPriority_t) osPriorityLow,
+  .stack_size = 512 * 4
+};
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -49,7 +80,12 @@ UART_HandleTypeDef huart2;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_USART1_UART_Init(void);
+void appMain(void *argument);
+void StartDefaultTask(void *argument);
+
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -87,11 +123,54 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART2_UART_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
 
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of microROS_app */
+  microROS_appHandle = osThreadNew(appMain, NULL, &microROS_app_attributes);
+
+  /* creation of StartTask */
+  StartTaskHandle = osThreadNew(StartDefaultTask, NULL, &StartTask_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* creation of StartTask */
+  //StartTaskHandle = osThreadNew(StartDefaultTask, NULL, &StartTask_attributes);
+
+  /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -99,11 +178,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-	  HAL_Delay(200);
   }
   /* USER CODE END 3 */
-
 }
 
 /**
@@ -151,6 +227,39 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
@@ -180,6 +289,32 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 2 */
 
   /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void)
+{
+
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+  __HAL_RCC_DMA2_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Stream5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
+  /* DMA1_Stream6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream6_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream6_IRQn);
+  /* DMA2_Stream2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
+  /* DMA2_Stream7_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream7_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream7_IRQn);
 
 }
 
@@ -219,6 +354,146 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_appMain */
+/**
+  * @brief  Function implementing the microROS_app thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_appMain */
+void appMain(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(20);
+  }
+  /* USER CODE END 5 */
+}
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+* @brief Function implementing the StartTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void *argument)
+{
+  /* USER CODE BEGIN StartDefaultTask */
+	/* Infinite loop */
+	for(;;)
+	{
+    	HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+    	osDelay(30);
+	}
+
+	bool availableNetwork = false;
+
+	#ifdef RMW_UXRCE_TRANSPORT_CUSTOM
+	  availableNetwork = true;
+	  rmw_uros_set_custom_transport(
+	    true,
+	    (void *) &huart2,
+	    freertos_serial_open,
+	    freertos_serial_close,
+	    freertos_serial_write,
+	    freertos_serial_read);
+	#elif defined(RMW_UXRCE_TRANSPORT_UDP)
+	  printf("Ethernet Initialization\r\n");
+
+	  // Waiting for an IP
+	  printf("Waiting for IP\r\n");
+	  int retries = 0;
+	  while (gnetif.ip_addr.addr == 0 && retries < 10) {
+	    osDelay(500);
+	    retries++;
+	  };
+
+	  availableNetwork = (gnetif.ip_addr.addr != 0);
+	  if (availableNetwork) {
+	    printf("IP: %s\r\n", ip4addr_ntoa(&gnetif.ip_addr));
+	  } else {
+	    printf("Impossible to retrieve an IP\n");
+	  }
+	#endif
+
+	  // Launch app thread when IP configured
+	  rcl_allocator_t freeRTOS_allocator = rcutils_get_zero_initialized_allocator();
+	  freeRTOS_allocator.allocate = __freertos_allocate;
+	  freeRTOS_allocator.deallocate = __freertos_deallocate;
+	  freeRTOS_allocator.reallocate = __freertos_reallocate;
+	  freeRTOS_allocator.zero_allocate = __freertos_zero_allocate;
+
+	  if (!rcutils_set_default_allocator(&freeRTOS_allocator))
+	  {
+	    printf("Error on default allocators (line %d)\n", __LINE__);
+	  }
+
+	  //osThreadAttr_t attributes;
+	  //memset(&attributes, 0x0, sizeof(osThreadAttr_t));
+	  //attributes.name = "microROS_app";
+	  //attributes.stack_size = 5 * 3000;
+	  //attributes.priority = (osPriority_t)osPriorityNormal1;
+		//microROS_appHandle = osThreadNew(appMain, NULL, &microROS_app_attributes);
+
+	  //osThreadNew(appMain, NULL, &attributes);
+	  osDelay(500);
+	  char ptrTaskList[500];
+	  vTaskList(ptrTaskList);
+	  printf("**********************************\n");
+	  printf("Task  State   Prio    Stack    Num\n");
+	  printf("**********************************\n");
+	  printf(ptrTaskList);
+	  printf("**********************************\n");
+
+	  TaskHandle_t xHandle;
+	  xHandle = xTaskGetHandle("microROS_app");
+
+	  while (1)
+	  {
+	    if (eTaskGetState(xHandle) != eSuspended && availableNetwork)
+	    {
+	      HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+	      osDelay(10000);
+	      HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+	      osDelay(10000);
+	      HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+	      osDelay(1500);
+	      HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+	      osDelay(5000);
+	    }
+	    else
+	    {
+	    	HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+	    	osDelay(30);
+	    }
+	  }
+  /* USER CODE END StartDefaultTask */
+}
+
+ /**
+  * @brief  Period elapsed callback in non blocking mode
+  * @note   This function is called  when TIM1 interrupt took place, inside
+  * HAL_TIM_IRQHandler(). It makes a direct call to HAL_IncTick() to increment
+  * a global variable "uwTick" used as application time base.
+  * @param  htim : TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  /* USER CODE BEGIN Callback 0 */
+
+  /* USER CODE END Callback 0 */
+  if (htim->Instance == TIM1) {
+    HAL_IncTick();
+  }
+  /* USER CODE BEGIN Callback 1 */
+
+  /* USER CODE END Callback 1 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
