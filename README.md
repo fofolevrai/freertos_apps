@@ -9,6 +9,7 @@ Supported hardware platforms are:
 * Crazyflie 2.1 drone
 * ST Nucleo F446ZE (community supported)
 * ST Nucleo F746ZG (community supported)
+* ST Nucleo F401RE (community supported)
 * ESP32
 
 ## Usage
