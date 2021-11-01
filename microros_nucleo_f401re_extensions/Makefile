@@ -33,9 +33,15 @@ endif
 #######################################
 # Build path
 EXTENSIONS_DIR = $(shell pwd)
-TOPFOLDER = $(EXTENSIONS_DIR)/../..
-UROS_DIR = $(TOPFOLDER)/mcu_ws
-BUILD_DIR = $(EXTENSIONS_DIR)/build
+ifeq ($(DEBUG), 1)
+	TOPFOLDER = $(EXTENSIONS_DIR)/../../../firmware
+	UROS_DIR = $(TOPFOLDER)/mcu_ws
+	BUILD_DIR = $(EXTENSIONS_DIR)/build
+else
+	TOPFOLDER = $(EXTENSIONS_DIR)/../..
+	UROS_DIR = $(TOPFOLDER)/mcu_ws
+	BUILD_DIR = $(EXTENSIONS_DIR)/build
+endif
 
 ######################################
 # source
@@ -47,8 +53,6 @@ Core/Src/system_stm32f4xx.c \
 Core/Src/stm32f4xx_it.c \
 Core/Src/stm32f4xx_hal_msp.c \
 Core/Src/stm32f4xx_hal_timebase_tim.c \
-Core/Src/syscalls.c \
-Core/Src/sysmem.c \
 Core/Src/freertos.c \
 Core/Src/allocators.c \
 Core/Src/microros_transports.c \
