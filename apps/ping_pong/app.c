@@ -9,9 +9,12 @@
 #include <unistd.h>
 #include <time.h>
 
+
 #ifdef ESP_PLATFORM
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#elif defined(STM32F401xE)
+#include "main.h"
 #endif
 
 #define STRING_BUFFER_LEN 50

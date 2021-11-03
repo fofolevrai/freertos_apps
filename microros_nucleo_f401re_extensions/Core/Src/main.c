@@ -150,8 +150,6 @@ int main(void)
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
-  /* creation of microROS_app */
-  microROS_appHandle = osThreadNew(appMain, NULL, &microROS_app_attributes);
 
   /* creation of StartTask */
   StartTaskHandle = osThreadNew(StartDefaultTask, NULL, &StartTask_attributes);
@@ -362,16 +360,6 @@ static void MX_GPIO_Init(void)
   * @retval None
   */
 /* USER CODE END Header_appMain */
-void appMain(void *argument)
-{
-  /* USER CODE BEGIN 5 */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(20);
-  }
-  /* USER CODE END 5 */
-}
 
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
@@ -383,12 +371,6 @@ void appMain(void *argument)
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
-	/* Infinite loop */
-	for(;;)
-	{
-    	HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-    	osDelay(30);
-	}
 
 	bool availableNetwork = false;
 
@@ -431,13 +413,9 @@ void StartDefaultTask(void *argument)
 	  {
 	    printf("Error on default allocators (line %d)\n", __LINE__);
 	  }
-
-	  //osThreadAttr_t attributes;
-	  //memset(&attributes, 0x0, sizeof(osThreadAttr_t));
-	  //attributes.name = "microROS_app";
-	  //attributes.stack_size = 5 * 3000;
-	  //attributes.priority = (osPriority_t)osPriorityNormal1;
-		//microROS_appHandle = osThreadNew(appMain, NULL, &microROS_app_attributes);
+	  
+	  //	Start uROS main application
+	  microROS_appHandle = osThreadNew(appMain, NULL, &microROS_app_attributes);
 
 	  //osThreadNew(appMain, NULL, &attributes);
 	  osDelay(500);
@@ -457,13 +435,13 @@ void StartDefaultTask(void *argument)
 	    if (eTaskGetState(xHandle) != eSuspended && availableNetwork)
 	    {
 	      HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-	      osDelay(10000);
+	      osDelay(1000);
 	      HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
-	      osDelay(10000);
+	      osDelay(1000);
 	      HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
-	      osDelay(1500);
+	      osDelay(3000);
 	      HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
-	      osDelay(5000);
+	      osDelay(3000);
 	    }
 	    else
 	    {
